@@ -1,0 +1,4 @@
+FSharp.Core
+Microsoft.Extensions.Configuration.CommandLine
+Microsoft.Extensions.Configuration.Json
+Microsoft.Extensions.Configuration.Binder
