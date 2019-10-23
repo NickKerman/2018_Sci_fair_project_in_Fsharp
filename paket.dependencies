@@ -1,0 +1,5 @@
+source https://www.nuget.org/api/v2
+nuget FSharp.Core
+nuget Microsoft.Extensions.Configuration.Binder
+nuget Microsoft.Extensions.Configuration.CommandLine
+nuget Microsoft.Extensions.Configuration.Json
