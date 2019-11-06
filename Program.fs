@@ -220,5 +220,279 @@ let main argv =
     if (t >= simRunTime) then
         stop <- 1
     printfn ("Done! Stop value:%s" % stop)
+    # plot(all_t, all_FlightPathDeg, ";FlightPathDeg;");
+# plot(all_t, all_V, ";V;");
+# plot(all_t, all_GravAng, ";GravAng;");
+# plot(all_t, all_GravForceX, ";GravForceX;", all_t, all_GravForceY, ";GravForceY;");
+# plot(all_t, all_forceDragX, ";forceDragX;", all_t, all_forceDragY, ";forceDragY;");
+# plot(all_t, all_h, ";Altitude (m);");
+# plot(all_t, all_ThrustN, ";Thrust (N);");
+# plot(all_t, all_xT, ";X Thrust;", all_t, all_yT, ";Y Thrust;");
+# plot(all_t, all_y, ";Y position (m);", all_t, all_x, ";X position (m);");
+
+timeIndexAtBurnout = None
+if v.timeAtBurnout is not None:
+  timeIndexAtBurnout = int((v.timeAtBurnout/TimeStep)/CounterLimit) - 1
+
+print ('position at burnout was (%s,%s) meters' % (all_x[timeIndexAtBurnout], all_y[timeIndexAtBurnout]))
+print ('velocity at burnout was %s m/s' % all_V[timeIndexAtBurnout])
+print ('Altitude at burnout was %s meters' % all_h[timeIndexAtBurnout])
+EscV = math.sqrt((2*GravConst*EarthMass)/all_PolarCoordMag[timeIndexAtBurnout])
+print ('escape velocity at %s meters is = %s m/s' % (all_h[timeIndexAtBurnout], EscV))
+ExcessEscapeVelocity = math.sqrt((math.pow(V,2))-(math.pow(EscV,2)))
+print ('Excess escape velocity = %s' %ExcessEscapeVelocity)
+
+
+# X and Y over time
+
+graph_dpi = 100
+
+plt.figure()
+fig, ax1 = plt.subplots()
+fig.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_y, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('Y position (m)', color='b')
+ax1.tick_params('y', colors='b')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_x, 'r-')
+ax2.set_ylabel('X position (m)', color='r')
+ax2.tick_params('y', colors='r')
+
+plt.savefig('G_x_y_vs_time.png', dpi=graph_dpi)
+
+# X versus Y
+
+plt.figure()
+fig, ax1 = plt.subplots()
+fig.set_size_inches(11, 11)
+
+ax1.set_xlabel('X position (m)')
+ax1.set_ylabel('Y position (m)')
+xymax = max(max(all_x), max(all_y)) + 200000  # find highest value in both sets
+xymin = min(min(all_x), min(all_y)) - 200000  # find lowest value
+if xymin < 0:                                 # if lowest is below 0 it might need a bigger frame
+  xymax = max(xymax, 0-xymin)
+
+ax1.set_ylim([0-xymax,xymax])
+ax1.set_xlim([0-xymax,xymax])
+
+def gimmeACircle(radius):
+    circleX = []
+    circleY = []
+    for degRange in range(0, 360, 1):
+        circleX.append(radius * math.sin(math.radians(degRange)))
+        circleY.append(radius * math.cos(math.radians(degRange)))
+    return circleX, circleY
+
+earthSurfaceCircleX, earthSurfaceCircleY = gimmeACircle(planetRadius)
+topAtmosLayerX, topAtmosLayerY = gimmeACircle(planetRadius + 86000)
+
+ax1.scatter(all_x, all_y, s=3, c='red')
+ax1.scatter(earthSurfaceCircleX, earthSurfaceCircleY, s=3, c='green')
+ax1.scatter(topAtmosLayerX, topAtmosLayerY, s=1, c='blue')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_x[timeIndexAtBurnout]]
+  burnCoordY = [all_y[timeIndexAtBurnout]]
+  ax1.scatter(burnCoordX, burnCoordY, s=50, c='red')
+  ax1.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+plt.savefig('G_x_y_scatter.png', dpi=graph_dpi)
+
+# Accel, ax, and ay graph
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_accel[timeIndexAtBurnout]]
+  ax1.scatter(burnCoordX, burnCoordY, s=50, c='blue')
+  ax1.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+ax1.plot(all_t, all_accel, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('Accel (m/s2)', color='b')
+ax1.tick_params('y', colors='b')
+
+ax2 = ax1.twinx()
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_Ax[timeIndexAtBurnout]]
+  ax2.scatter(burnCoordX, burnCoordY, s=50, c='red')
+  ax2.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_Ay[timeIndexAtBurnout]]
+  ax2.scatter(burnCoordX, burnCoordY, s=50, c='green')
+  ax2.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+ax2.plot(all_t, all_Ax, 'r-')
+ax2.plot(all_t, all_Ay, 'g-')
+ax2.set_ylabel('Accel along X axis', color='r')
+ax2.set_ylabel('Accel along Y axis', color='g')
+ax2.tick_params('y', colors='r')
+
+plt.savefig('G_accel.png', dpi=graph_dpi)
+
+# Air density and height and pressure
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_localAirDensity, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('Local air density', color='b')
+ax1.tick_params('y', colors='b')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_localPressure, 'g-')
+ax2.set_ylabel('Local pressure (Pascals)', color='g')
+ax2.tick_params('y', colors='g')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_h, 'r-')
+ax2.set_ylabel('Height (m)', color='r')
+ax2.tick_params('y', colors='r')
+
+plt.savefig('G_local_air_density-height.png', dpi=graph_dpi)
+
+# VelocityX and VelocityY
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_VelocityX, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('VelocityX', color='b')
+ax1.tick_params('y', colors='b')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_VelocityX[timeIndexAtBurnout]]
+  ax1.scatter(burnCoordX, burnCoordY, s=50, c='blue')
+  ax1.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_VelocityY, 'g-')
+ax2.set_ylabel('VelocityY', color='g')
+ax2.tick_params('y', colors='g')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_VelocityY[timeIndexAtBurnout]]
+  ax2.scatter(burnCoordX, burnCoordY, s=50, c='green')
+  ax2.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+plt.savefig('G_velocityx_velocityy.png', dpi=graph_dpi)
+
+# forceOfDrag and FlightPathDeg and HeadingDeg
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_forceOfDrag, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('forceOfDrag', color='b')
+ax1.tick_params('y', colors='b')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_FlightPathDeg, 'g-')
+ax2.set_ylabel('FlightPathDeg', color='g')
+ax2.tick_params('y', colors='g')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_HeadingDeg, 'r-')
+ax2.set_ylabel('HeadingDeg', color='r')
+ax2.tick_params('y', colors='r')
+
+plt.savefig('G_forceOfDrag_FlightPathDeg_Head.png', dpi=graph_dpi)
+#plt.savefig('G_Kick-%s-KickHeight-%s-forceOfDrag_FlightPathDeg_Head.png' % (kickAngleDeg,kickHeight),dpi = graph_dpi)
+
+# ThrustN
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_ThrustN, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('ThrustN', color='b')
+ax1.tick_params('y', colors='b')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_ThrustN[timeIndexAtBurnout]]
+  ax1.scatter(burnCoordX, burnCoordY, s=50, c='blue')
+  ax1.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+plt.savefig('G_ThrustN.png', dpi=graph_dpi)
+
+# GravAng
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_GravAng, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('GravAng', color='b')
+ax1.tick_params('y', colors='b')
+
+ax2 = ax1.twinx()
+ax2.plot(all_t, all_GravForce, 'g-')
+ax2.set_ylabel('GravForce', color='g')
+ax2.tick_params('y', colors='g')
+
+plt.savefig('G_GravAng_GravForce.png', dpi=graph_dpi)
+
+#Position
+#plt.figure()
+#ax = plt.subplot(111, polar=True)
+#stepped_d = []
+#stepped_m = []
+#skip = 0
+#index = 0
+#while index < len(all_PolarCoordDeg):
+#   d = all_PolarCoordDeg[index]
+#    m = all_PolarCoordMag[index]
+#    skip = skip + 1
+#    if skip > 50:
+#        stepped_d.append(d)
+#        stepped_m.append(m)
+#        skip = 0
+#    index = index + 1
+#ax.scatter(all_PolarCoordDeg, all_PolarCoordMag, s=1.1, c='red')
+#ax.plot(q, all_PolarCoordMag, 'r-')
+#ax.scatter(stepped_d, stepped_m, s=2, c='black')
+#print (all_PolarCoordDeg)
+#plt.savefig('G_radial_flight_path.png',dpi = 700)
+#plt.savefig('G_Kick-%s-Height-%s-flight_path.png' % (kickAngleDeg,kickHeight),dpi = 1500)
+
+plt.figure()
+fig2, ax1 = plt.subplots()
+fig2.set_size_inches(11, 5)
+
+ax1.plot(all_t, all_dynamicQ, 'b-')
+ax1.set_xlabel('time (s)')
+ax1.set_ylabel('Dynamic Pressure', color='b')
+ax1.tick_params('y', colors='b')
+
+if timeIndexAtBurnout is not None:
+  burnCoordX = [all_t[timeIndexAtBurnout]]
+  burnCoordY = [all_dynamicQ[timeIndexAtBurnout]]
+  ax1.scatter(burnCoordX, burnCoordY, s=50, c='blue')
+  ax1.scatter(burnCoordX, burnCoordY, s=20, c='white')
+
+plt.savefig('G_DynamicQ.png', dpi=graph_dpi)
 
     0
