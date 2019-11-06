@@ -62,9 +62,9 @@ let main argv =
     let mutable FlightPathDeg = 0.0     // flight path angle in degrees (where you are going)
     let mutable GravForce = 0.0         // Force of gravity in Newtons
     
-    let mutable plsStop = 0
+    let mutable stop = 0
 
-    while (plsStop = 0) do
+    while (stop = 0) do
         t <- t + TimeStep
         //  atmospheric details
         if (h <= 11000.0) then                               // pressure, density, and temperature functions for under 11000 meters
@@ -187,15 +187,15 @@ let main argv =
     let dynamicQ = localPressure * (V ** 2.0) * 0.5
     if (h < 0.0) then
         plsStlop <- 1
-        print ("BOOOOM!  Hit the ground at t=%s" % t)
+        printfn ("BOOOOM!  Hit the ground at t=%s" % t)
     //HeadingDeg, kickHeight, kickAngleDeg = v.PitchControl(t, TimeStep, h, FlightPathDeg, HeadingDeg, PolarCoordDeg)
     HeadingDeg, kickAngleDeg, kickHeight = v.PitchControl(t, TimeStep, h, FlightPathDeg, HeadingDeg, PolarCoordDeg, dynamicQ)
 
   // Accumulate records every 100 itterations
     Counter = (Counter + 1)
-    if (Counter == CounterLimit):
+    if (Counter = CounterLimit) then
         Counter = 0;
-        all_t.append(t)                  # These lines record the current values in the one_time structre
+        all_t.append(t)                  // These lines record the current values in the one_time structre
         all_y.append(y)
         all_h.append(h)
         all_StageNo.append(StageNo)
@@ -217,8 +217,8 @@ let main argv =
         all_PolarCoordMag.append(PolarCoordMag)
         all_PolarCoordDeg.append(math.radians(PolarCoordDeg))
         all_dynamicQ.append(dynamicQ)
-    if (t >= simRunTime):
-        stop = 1
-    print ("Done! Stop value:%s" % stop)
+    if (t >= simRunTime) then
+        stop <- 1
+    printfn ("Done! Stop value:%s" % stop)
 
     0
